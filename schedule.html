@@ -18,6 +18,19 @@
         .controls {
             margin: 10px 0;
         }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .spacer {
+            margin: 0 5px;
+        }
+
+        .full-width {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -39,7 +52,7 @@
                 <th>금</th>
                 <th>토</th>
                 <th>일</th>
-                <th>총 근무시간</th>
+                <th>총 주간 근무시간</th>
                 <th>삭제</th>
             </tr>
         </thead>
@@ -51,7 +64,7 @@
     <script>
         const weekDays = ["월", "화", "수", "목", "금", "토", "일"];
         const workHoursOptions = createTimeOptions(11, 22, 30);
-        const breakTimeOptions = createBreakOptions(30, 180, 30);
+        const breakTimeOptions = createBreakOptions(0, 180, 30);
 
         function createTimeOptions(startHour, endHour, intervalMinutes) {
             const options = [];
@@ -66,8 +79,8 @@
 
         function createBreakOptions(start, end, interval) {
             const options = [];
-            for (let time = start; time <= end; time += interval) {
-                options.push(`${time}분`);
+            for (let i = start; i <= end; i += interval) {
+                options.push(`${i}분`);
             }
             return options;
         }
@@ -75,19 +88,9 @@
         function addPerson() {
             const row = document.createElement("tr");
 
-            const nameCell = document.createElement("td");
-            const nameInput = document.createElement("input");
-            nameInput.type = "text";
-            nameInput.placeholder = "이름";
-            nameCell.appendChild(nameInput);
+            const nameCell = createTextInputCell("이름");
+            const roleCell = createSelectCell(["직원", "알바"], handleRoleChange);
             row.appendChild(nameCell);
-
-            const roleCell = document.createElement("td");
-            const roleSelect = document.createElement("select");
-            roleSelect.appendChild(createOption("직원"));
-            roleSelect.appendChild(createOption("알바"));
-            roleSelect.onchange = handleRoleChange;
-            roleCell.appendChild(roleSelect);
             row.appendChild(roleCell);
 
             for (let i = 0; i < 7; i++) {
@@ -110,20 +113,37 @@
 
             document.getElementById("scheduleBody").appendChild(row);
 
-            roleSelect.value = "직원";
-            handleRoleChange({ target: roleSelect });
+            roleCell.querySelector("select").value = "직원";
+            handleRoleChange({ target: roleCell.querySelector("select") });
         }
 
-        function createOption(value) {
-            const option = document.createElement("option");
-            option.value = value;
-            option.textContent = value;
-            return option;
+        function createTextInputCell(placeholder) {
+            const cell = document.createElement("td");
+            const input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = placeholder;
+            input.className = "full-width";
+            cell.appendChild(input);
+            return cell;
         }
 
-        function handleRoleChange(event) {
-            const role = event.target.value;
-            const row = event.target.closest("tr");
+        function createSelectCell(options, changeHandler) {
+            const cell = document.createElement("td");
+            const select = document.createElement("select");
+            select.onchange = changeHandler;
+            options.forEach(option => {
+                const opt = document.createElement("option");
+                opt.value = option;
+                opt.textContent = option;
+                select.appendChild(opt);
+            });
+            cell.appendChild(select);
+            return cell;
+        }
+
+        function handleRoleChange(e) {
+            const role = e.target.value;
+            const row = e.target.closest("tr");
 
             if (role === "직원") {
                 for (let i = 2; i < 9; i++) {
@@ -133,7 +153,7 @@
                     select.appendChild(createOption("O"));
                     select.appendChild(createOption("X"));
                     cell.appendChild(select);
-                    select.onchange = calculateTotalHours;
+                    select.onchange = calculateWeeklyHours;
                 }
             } else if (role === "알바") {
                 for (let i = 2; i < 9; i++) {
@@ -148,13 +168,13 @@
                     cell.appendChild(document.createTextNode(" 휴게 "));
                     cell.appendChild(breakSelect);
 
-                    startSelect.onchange = calculateTotalHours;
-                    endSelect.onchange = calculateTotalHours;
-                    breakSelect.onchange = calculateTotalHours;
+                    startSelect.onchange = calculateWeeklyHours;
+                    endSelect.onchange = calculateWeeklyHours;
+                    breakSelect.onchange = calculateWeeklyHours;
                 }
             }
 
-            calculateTotalHours();
+            calculateWeeklyHours();
         }
 
         function createSelect(options) {
@@ -168,12 +188,19 @@
             return select;
         }
 
-        function calculateTotalHours() {
+        function createOption(value) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            return option;
+        }
+
+        function calculateWeeklyHours() {
             const rows = document.getElementById("scheduleBody").querySelectorAll("tr");
 
             rows.forEach(row => {
                 const role = row.cells[1].querySelector("select").value;
-                let totalHours = 0;
+                let totalWeeklyHours = 0;
 
                 if (role === "알바") {
                     for (let i = 2; i < 9; i++) {
@@ -186,8 +213,8 @@
 
                             if (end > start) {
                                 const workHours = (end - start) - (breakTime / 60);
-                                cell.textContent = `${workHours.toFixed(1)}시간`;
-                                totalHours += workHours;
+                                cell.textContent = `${workHours.toFixed(1)} 시간`;
+                                totalWeeklyHours += workHours;
                             } else {
                                 cell.textContent = "시간 오류";
                             }
@@ -201,10 +228,15 @@
                     }
                 }
 
-                row.cells[9].textContent = `${totalHours.toFixed(1)}시간`;
+                row.cells[9].textContent = `${totalWeeklyHours.toFixed(1)}시간`;
             });
 
             calculateMonthlyTotal();
+        }
+
+        function parseTime(time) {
+            const [hour, minute] = time.split(":");
+            return parseInt(hour) + (parseInt(minute) / 60);
         }
 
         function calculateMonthlyTotal() {
@@ -212,9 +244,10 @@
             const rows = document.getElementById("scheduleBody").querySelectorAll("tr");
 
             rows.forEach(row => {
-                const totalHoursCell = row.cells[9];
-                if (totalHoursCell.textContent !== "N/A") {
-                    totalHours += parseFloat(totalHoursCell.textContent.replace("시간", ""));
+                const role = row.cells[1].querySelector("select").value;
+                if (role === "알바") {
+                    const totalHoursText = row.cells[9].textContent;
+                    totalHours += parseFloat(totalHoursText.replace("시간", ""));
                 }
             });
 
@@ -249,13 +282,13 @@
                     }
                 }
 
-                const totalHours = row.cells[9].textContent;
+                const totalWeeklyHours = row.cells[9].textContent;
 
                 scheduleData.push({
                     name,
                     role,
                     weeklySchedule,
-                    totalHours
+                    totalWeeklyHours
                 });
             });
 
@@ -272,9 +305,16 @@
                     row.cells[0].querySelector("input").value = person.name;
                     row.cells[1].querySelector("select").value = person.role;
 
-                    for (let i = 2; i < 9; i++) {
-                        const cell = row.cells[i];
-                        if (person.role === "알바") {
+                    if (person.role === "직원") {
+                        for (let i = 2; i < 9; i++) {
+                            const cell = row.cells[i];
+                            const select = cell.querySelector("select");
+                            select.value = person.weeklySchedule[weekDays[i - 2]];
+                            cell.textContent = select.value;
+                        }
+                    } else {
+                        for (let i = 2; i < 9; i++) {
+                            const cell = row.cells[i];
                             const startSelect = cell.querySelector("select");
                             const endSelect = cell.querySelector("select");
                             const breakSelect = cell.querySelector("select");
@@ -285,16 +325,15 @@
                                 endSelect.value = daySchedule.end;
                                 breakSelect.value = daySchedule.break;
                             }
-                        } else {
-                            const select = cell.querySelector("select");
-                            select.value = person.weeklySchedule[weekDays[i - 2]];
+
+                            calculateWeeklyHours();
                         }
                     }
 
-                    row.cells[9].textContent = person.totalHours;
+                    row.cells[9].textContent = person.totalWeeklyHours;
                 });
 
-                calculateTotalHours();
+                calculateMonthlyTotal();
             }
         }
 
