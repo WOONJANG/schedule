@@ -105,13 +105,19 @@
 
 
 
-            // 폼 값 저장
+              // 폼 값 저장
             function saveFormValues() {
-                const inputs = document.querySelectorAll('input, select'); // 모든 입력 요소
-                const formValues = {};
+                const rows = document.querySelectorAll('#schedule-container tr'); // 모든 행
+                const formValues = {}; // 각 행의 값을 저장하기 위한 객체
 
-                inputs.forEach((input, index) => {
-                    formValues[index] = input.value; // 입력 값 저장
+                rows.forEach((row, rowIndex) => {
+                    const inputs = row.querySelectorAll('input, select'); // 각 행의 입력 요소
+                    formValues[rowIndex] = {};
+
+                    inputs.forEach((input) => {
+                        const key = input.name || input.type; // 키는 요소 이름이나 타입
+                        formValues[rowIndex][key] = input.value; // 입력 값 저장
+                    });
                 });
 
                 localStorage.setItem('formValues', JSON.stringify(formValues)); // 로컬 스토리지에 저장
@@ -121,16 +127,33 @@
             function restoreFormValues() {
                 const savedFormValues = localStorage.getItem('formValues');
                 if (savedFormValues) {
-                    const formValues = JSON.parse(savedFormValues);
-                    const inputs = document.querySelectorAll('input, select'); // 모든 입력 요소
+                    const formValues = JSON.parse(savedFormValues); // 저장된 값을 파싱
 
-                    inputs.forEach((input, index) => {
-                        if (formValues[index] !== undefined) {
-                            input.value = formValues[index]; // 입력 값 복원
+                    formValues.forEach((rowValues, rowIndex) => {
+                        const row = document.querySelectorAll('#schedule-container tr')[rowIndex]; // 각 행 찾기
+                        if (row) {
+                            const inputs = row.querySelectorAll('input, select');
+                            inputs.forEach((input) => {
+                                const key = input.name || input.type;
+                                if (rowValues[key] !== undefined) {
+                                    input.value = rowValues[key]; // 입력 값 복원
+                                }
+                            });
                         }
                     });
                 }
             }
+
+            // 저장 버튼 클릭 시 폼 값 및 스케줄 저장
+            saveButton.addEventListener('click', function() {
+                saveFormValues(); // 폼 값 저장
+
+                const scheduleHTML = scheduleContainer.innerHTML; // 스케줄 HTML 저장
+                const encodedData = toBase64(scheduleHTML);
+                localStorage.setItem('scheduleData', encodedData);
+
+                alert('저장되었습니다.');
+            });
 
 
 
