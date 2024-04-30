@@ -105,18 +105,26 @@
 
 
 
-              // 폼 값 저장
+            // 폼 값 저장
             function saveFormValues() {
                 const rows = document.querySelectorAll('#schedule-container tr'); // 모든 행
-                const formValues = {}; // 각 행의 값을 저장하기 위한 객체
+                const formValues = {}; // 각 행의 데이터를 저장하기 위한 객체
 
                 rows.forEach((row, rowIndex) => {
-                    const inputs = row.querySelectorAll('input, select'); // 각 행의 입력 요소
-                    formValues[rowIndex] = {};
+                    const nameInput = row.querySelector('input[type="text"]'); // 이름 입력 필드
+                    const selectElements = row.querySelectorAll('select'); // 모든 셀렉트 박스
+                    formValues[rowIndex] = {
+                        name: nameInput ? nameInput.value : '', // 이름 저장
+                        daySelections: {}, // 각 요일의 데이터 저장
+                    };
 
-                    inputs.forEach((input) => {
-                        const key = input.name || input.type; // 키는 요소 이름이나 타입
-                        formValues[rowIndex][key] = input.value; // 입력 값 저장
+                    selectElements.forEach((select, selectIndex) => {
+                        const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+                        const dayName = dayNames[selectIndex - 1]; // 요일 이름
+
+                        if (dayName) {
+                            formValues[rowIndex].daySelections[dayName] = select.value; // 각 요일에 대한 데이터 저장
+                        }
                     });
                 });
 
@@ -127,16 +135,24 @@
             function restoreFormValues() {
                 const savedFormValues = localStorage.getItem('formValues');
                 if (savedFormValues) {
-                    const formValues = JSON.parse(savedFormValues); // 저장된 값을 파싱
+                    const formValues = JSON.parse(savedFormValues);
 
                     formValues.forEach((rowValues, rowIndex) => {
                         const row = document.querySelectorAll('#schedule-container tr')[rowIndex]; // 각 행 찾기
                         if (row) {
-                            const inputs = row.querySelectorAll('input, select');
-                            inputs.forEach((input) => {
-                                const key = input.name || input.type;
-                                if (rowValues[key] !== undefined) {
-                                    input.value = rowValues[key]; // 입력 값 복원
+                            const nameInput = row.querySelector('input[type="text"]'); // 이름 입력 필드
+                            const selectElements = row.querySelectorAll('select'); // 모든 셀렉트 박스
+
+                            if (nameInput && rowValues.name !== undefined) {
+                                nameInput.value = rowValues.name; // 이름 복원
+                            }
+
+                            selectElements.forEach((select, selectIndex) => {
+                                const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+                                const dayName = dayNames[selectIndex - 1];
+
+                                if (dayName && rowValues.daySelections[dayName] !== undefined) {
+                                    select.value = rowValues.daySelections[dayName]; // 각 요일의 데이터 복원
                                 }
                             });
                         }
