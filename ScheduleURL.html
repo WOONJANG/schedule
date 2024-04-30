@@ -68,19 +68,41 @@
                 attachEventListeners();
             });
 
-            // 저장 (로컬 스토리지 및 URL)
-            saveButton.addEventListener('click', function() {
-                const scheduleHTML = scheduleContainer.innerHTML;
+            // 데이터 저장
+saveButton.addEventListener('click', function() {
+    const scheduleHTML = scheduleContainer.innerHTML;
 
-                // 로컬 스토리지에 저장
-                localStorage.setItem('scheduleData', scheduleHTML);
+    // Base64 인코딩
+    const encodedData = toBase64(scheduleHTML);
 
-                // URL 쿼리 파라미터에 저장
-                const encodedData = btoa(JSON.stringify(scheduleHTML));
-                window.history.pushState({}, null, '?data=' + encodedData);
+    // URL 쿼리 파라미터에 저장
+    window.history.pushState({}, null, '?data=' + encodedData);
 
-                alert('저장되었습니다.');
-            });
+    // 로컬 스토리지에 저장
+    localStorage.setItem('scheduleData', encodedData);
+
+    alert('저장되었습니다.');
+});
+
+// 데이터 로드
+function loadSchedule() {
+    const params = new URLSearchParams(window.location.search);
+    const encodedData = params.get('data');
+    
+    if (encodedData) {
+        const decodedData = fromBase64(encodedData); // UTF-8 디코딩
+        scheduleContainer.innerHTML = decodedData;
+    } else {
+        const savedData = localStorage.getItem('scheduleData');
+        if (savedData) {
+            const decodedData = fromBase64(savedData);
+            scheduleContainer.innerHTML = decodedData;
+        }
+    }
+
+    attachEventListeners(); // 이벤트 리스너 연결
+}
+
 
             // 초기화 (로컬 스토리지 및 URL 리셋)
             resetButton.addEventListener('click', function() {
