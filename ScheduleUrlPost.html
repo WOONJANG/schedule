@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>근무 스케줄</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>근무 스케줄</h1>
+
+    <button id="add-week">한주 추가하기</button>
+    <button id="save">저장</button>
+    <button id="share">공유</button>
+    <button id="reset">초기화</button>
+        
+    <div id="schedule-container"></div>
+    
+    <script>
+ // Base64 유틸리티 함수
+        function toBase64(str) {
+            const encoder = new TextEncoder();
+            const uint8Array = encoder.encode(str);
+            const binaryStr = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+            return btoa(binaryStr);
+        }
+
+        function fromBase64(encoded) {
+            const binaryStr = atob(encoded);
+            const uint8Array = new Uint8Array(
+                Array.from(binaryStr, char => char.charCodeAt(0))
+            );
+            const decoder = new TextDecoder();
+            return decoder.decode(uint8Array);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const scheduleContainer = document.getElementById('schedule-container');
+            const addWeekButton = document.getElementById('add-week');
+            const saveButton = document.getElementById('save');
+            const shareButton = document.getElementById('share');
+            const resetButton = document.getElementById('reset');
+
+            // 스케줄 로드
+            function loadSchedule() {
+                const savedData = localStorage.getItem('scheduleData');
+                if (savedData) {
+                    const decodedData = fromBase64(savedData);
+                    scheduleContainer.innerHTML = decodedData;
+                }
+
+                attachEventListeners(); // 이벤트 리스너 연결
+            }
+
+            // 주 생성
+            addWeekButton.addEventListener('click', function() {
+                const newWeek = createWeek();
+                scheduleContainer.appendChild(newWeek);
+                attachEventListeners();
+            });
+
+            // 로컬 스토리지에 저장
+            saveButton.addEventListener('click', function() {
+                const scheduleHTML = scheduleContainer.innerHTML;
+
+                // 로컬 스토리지에 저장
+                const encodedData = toBase64(scheduleHTML);
+                localStorage.setItem('scheduleData', encodedData);
+
+                alert('저장되었습니다.');
+            });
+
+            // 공유 (POST 요청)
+            shareButton.addEventListener('click', function() {
+                const scheduleHTML = scheduleContainer.innerHTML;
+                const encodedData = toBase64(scheduleHTML);
+
+                fetch('/api/schedules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ data: encodedData })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const uniqueID = data.id;
+                    const shareURL = `${window.location.origin}/schedule/${uniqueID}`;
+                    navigator.clipboard.writeText(shareURL) // 클립보드에 URL 복사
+                        .then(function() {
+                            alert('URL이 클립보드에 복사되었습니다.');
+                        })
+                        .catch(function(err) {
+                            console.error('클립보드에 복사하는 중 오류가 발생했습니다.', err);
+                        });
+                })
+                .catch(function(err) {
+                    console.error('POST 요청 중 오류가 발생했습니다.', err);
+                });
+            });
+
+            // 초기화
+            resetButton.addEventListener('click', function() {
+                const confirmation = prompt("초기화하시겠습니까? '초기화'를 입력해주세요.");
+                if (confirmation === '초기화') {
+                    localStorage.removeItem('scheduleData');
+                    scheduleContainer.innerHTML = '';
+                }
+            });
+
+            // 주 생성 함수
+            function createWeek() {
+                const table = document.createElement('table');
+                
+                const addPersonButton = document.createElement('button');
+                addPersonButton.textContent = "인원 추가";
+                addPersonButton.addEventListener('click', function() {
+                    const newPersonRow = createPersonRow();
+                    table.appendChild(newPersonRow);
+                });
+
+                const headerRow = document.createElement('tr');
+                const headers = ['이름', '분류', '월', '화', '수', '목', '금', '토', '일', '삭제'];
+                
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.append(th);
+                });
+
+                table.appendChild(addPersonButton);
+                table.appendChild(headerRow);
+
+                return table;
+            }
+
+            // 직원/알바 구분
+            function createPersonRow() {
+                const tr = document.createElement('tr');
+                
+                // 이름 입력
+                const nameTd = document.createElement('td');
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = '이름 입력';
+                nameTd.append(nameInput);
+                tr.append(nameTd);
+
+                // 분류 선택
+                const typeTd = document.createElement('td');
+                const typeSelect = document.createElement('select');
+                const employeeOption = document.createElement('option');
+                employeeOption.textContent = '직원';
+                const partTimerOption = document.createElement('option');
+                partTimerOption.textContent = '알바';
+                typeSelect.append(employeeOption);
+                typeSelect.append(partTimerOption);
+                typeTd.append(typeSelect);
+                tr.append(typeTd);
+
+                const dayTds = [];
+
+                ['월', '화', '수', '목', '금', '토', '일'].forEach(day => {
+                    const dayTd = document.createElement('td');
+                    tr.append(dayTd);
+                    dayTds.push(dayTd);
+                });
+
+                // 직원 설정
+                function setEmployeeOptions() {
+                    dayTds.forEach(dayTd => {
+                        dayTd.innerHTML = ''; // 초기화
+                        const daySelect = document.createElement('select');
+                        const optionO = document.createElement('option');
+                        optionO.textContent = 'O';
+                        const optionX = document.createElement('option');
+                        optionX.textContent = 'X';
+                        daySelect.append(optionO);
+                        daySelect.append(optionX);
+                        dayTd.append(daySelect);
+                    });
+                }
+
+                // 알바 설정
+                function setPartTimerOptions() {
+                    const startTimes = Array.from({ length: 23 }, (_, i) => 11 + i * 0.5);
+                    const breakTimes = Array.from({ length: 7 }, (_, i) => i * 30);
+
+                    dayTds.forEach(dayTd => {
+                        dayTd.innerHTML = ''; // 초기화
+
+                        const startSelect = document.createElement('select');
+                        const endSelect = document.createElement('select');
+                        const breakSelect = document.createElement('select');
+
+                        const nullOption = document.createElement('option');
+                        nullOption.textContent === 'X';
+                        startSelect.append(nullOption);
+                        endSelect.append(nullOption.cloneNode(true));
+
+                        startTimes.forEach(time => {
+                            const option = document.createElement('option');
+                            option.textContent = `${Math.floor(time)}:${time % 1 ? '30' : '00'}`;
+                            startSelect.append(option);
+                            endSelect.append(option.cloneNode(true));
+                        });
+
+                        breakTimes.forEach(time => {
+                            const option = document.createElement('option');
+                            option.textContent = `${time}분`;
+                            breakSelect.append(option);
+                        });
+
+                        const workingHoursSpan = document.createElement('span');
+
+                        const calculateTotalWorkingHours = () => {
+                            const start = startSelect.value;
+                            const end = endSelect.value;
+                            const breakMinutes = breakSelect.value;
+
+                            const totalWorkingHours = calculateWorkingHours(start, end, breakMinutes);
+
+
+
+
+
+//근무시간 함수
+
+function convertToFloatTime(timeString) {
+    const [hours, minutes] = timeString.split(':');
+    const floatHours = parseFloat(hours);
+    const floatMinutes = parseFloat(minutes) / 60;
+    return floatHours + floatMinutes;
+}
+
+function calculateWorkingHours(startTime, endTime, breakTime) {
+    const start = startTime === 'X' ? 0 : convertToFloatTime(startTime);
+    const end = endTime === 'X' ? 0 : convertToFloatTime(endTime);
+    const breakFloat = parseFloat(breakTime) / 60; // 휴게 시간을 시간 단위로 변환
+
+    const workDuration = (end - start) - breakFloat;
+    return workDuration > 0 ? workDuration : 0; // 음수가 될 경우 0으로 처리
+}
+
+
+
+
+
+
+
+
+
+                            workingHoursSpan.textContent = `${totalWorkingHours.toFixed(1)} 시간`;
+                        };
+
+                        startSelect.addEventListener('change', calculateTotalWorkingHours);
+                        endSelect.addEventListener('change', calculateTotalWorkingHours);
+                        breakSelect.addEventListener('change', calculateTotalWorkingHours);
+
+                        dayTd.append(startSelect);
+                        dayTd.append(document.createTextNode(' ~ '));
+                        dayTd.append(endSelect);
+                        dayTd.append(document.createTextNode(''));
+                        dayTd.append(breakSelect);
+                        dayTd.append(workingHoursSpan);
+
+                        calculateTotalWorkingHours(); // 초기 계산
+                    });
+                }
+
+                // 분류 변경에 따른 동적 설정
+                typeSelect.addEventListener('change', function() {
+                    if (typeSelect.value === '알바') {
+                        setPartTimerOptions();
+                    } else {
+                        setEmployeeOptions();
+                    }
+                });
+
+                // 삭제 버튼
+                const deleteTd = document.createElement('td');
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent === '삭제';
+                deleteButton.addEventListener('click', function() {
+                    tr.remove();
+                });
+                deleteTd.append(deleteButton);
+                tr.append(deleteTd);
+
+                // 초기 설정은 직원
+                setEmployeeOptions();
+
+                return tr;
+            }
+
+            loadSchedule(); // 스케줄 데이터 로드
+
+            // 이벤트 리스너 연결
+            function attachEventListeners() {
+                const deleteButtons = document.querySelectorAll("button");
+                deleteButtons.forEach(button => {
+                    if (button.textContent === '삭제') {
+                        button.addEventListener('click', function() {
+                            const row = button.closest('tr');
+                            row.remove();
+                        });
+                    }
+                });
+            }
+        });
+
+    </script>
+</body>
+</html>
