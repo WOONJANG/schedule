@@ -31,8 +31,9 @@
 
     <button id="add-week">한주 추가하기</button>
     <button id="save">저장</button>
+    <button id="copy-uri">공유</button>
     <button id="reset">초기화</button>
-    
+        
     <div id="schedule-container"></div>
     
     <script>
@@ -309,6 +310,17 @@ function calculateWorkingHours(startTime, endTime, breakTime) {
                     }
                 });
             }
+        });
+
+         document.getElementById('copy-uri').addEventListener('click', function() {
+            const currentURI = window.location.href; // 현재 페이지의 URL 가져오기
+            navigator.clipboard.writeText(currentURI) // 클립보드에 URL 복사
+                .then(function() {
+                    alert('URL이 클립보드에 복사되었습니다.');
+                })
+                .catch(function(err) {
+                    console.error('클립보드에 복사하는 중 오류가 발생했습니다.', err);
+                });
         });
     </script>
 </body>
