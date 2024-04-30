@@ -36,25 +36,42 @@
     <div id="schedule-container"></div>
     
     <script>
+        // Base64 유틸리티 함수
+        function toBase64(str) {
+            const encoder = new TextEncoder();
+            const uint8Array = encoder.encode(str);
+            const binaryStr = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+            return btoa(binaryStr);
+        }
+
+        function fromBase64(encoded) {
+            const binaryStr = atob(encoded);
+            const uint8Array = new Uint8Array(
+                Array.from(binaryStr, char => char.charCodeAt(0))
+            );
+            const decoder = new TextDecoder();
+            return decoder.decode(uint8Array);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const scheduleContainer = document.getElementById('schedule-container');
             const addWeekButton = document.getElementById('add-week');
             const saveButton = document.getElementById('save');
             const resetButton = document.getElementById('reset');
 
-            // 스케줄 로드 (URL과 로컬 스토리지 모두)
+            // 스케줄 로드 (URL 및 로컬 스토리지에서)
             function loadSchedule() {
                 const params = new URLSearchParams(window.location.search);
-                const encodedData = params.get('data'); // URL에서 'data' 쿼리 파라미터 읽기
-                
+                const encodedData = params.get('data'); // URL 쿼리 파라미터 읽기
+
                 if (encodedData) {
-                    const decodedData = atob(encodedData);
-                    const scheduleData = JSON.parse(decodedData);
-                    scheduleContainer.innerHTML = scheduleData;
+                    const decodedData = fromBase64(encodedData);
+                    scheduleContainer.innerHTML = decodedData;
                 } else {
                     const savedData = localStorage.getItem('scheduleData');
                     if (savedData) {
-                        scheduleContainer.innerHTML = savedData;
+                        const decodedData = fromBase64(savedData);
+                        scheduleContainer.innerHTML = decodedData;
                     }
                 }
 
@@ -68,40 +85,19 @@
                 attachEventListeners();
             });
 
-            // 데이터 저장
-saveButton.addEventListener('click', function() {
-    const scheduleHTML = scheduleContainer.innerHTML;
+            // 저장 (로컬 스토리지 및 URL)
+            saveButton.addEventListener('click', function() {
+                const scheduleHTML = scheduleContainer.innerHTML;
 
-    // Base64 인코딩
-    const encodedData = toBase64(scheduleHTML);
+                // URL에 데이터 저장
+                const encodedData = toBase64(scheduleHTML);
+                window.history.pushState({}, null, '?data=' + encodedData);
 
-    // URL 쿼리 파라미터에 저장
-    window.history.pushState({}, null, '?data=' + encodedData);
+                // 로컬 스토리지에 저장
+                localStorage.setItem('scheduleData', encodedData);
 
-    // 로컬 스토리지에 저장
-    localStorage.setItem('scheduleData', encodedData);
-
-    alert('저장되었습니다.');
-});
-
-// 데이터 로드
-function loadSchedule() {
-    const params = new URLSearchParams(window.location.search);
-    const encodedData = params.get('data');
-    
-    if (encodedData) {
-        const decodedData = fromBase64(encodedData); // UTF-8 디코딩
-        scheduleContainer.innerHTML = decodedData;
-    } else {
-        const savedData = localStorage.getItem('scheduleData');
-        if (savedData) {
-            const decodedData = fromBase64(savedData);
-            scheduleContainer.innerHTML = decodedData;
-        }
-    }
-
-    attachEventListeners(); // 이벤트 리스너 연결
-}
+                alert('저장되었습니다.');
+            });
 
 
             // 초기화 (로컬 스토리지 및 URL 리셋)
