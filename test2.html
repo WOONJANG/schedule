@@ -62,22 +62,24 @@
 
       // 스케줄 로드 (URL 및 로컬 스토리지에서)
       function loadSchedule() {
-        const params = new URLSearchParams(window.location.search);
-        const encodedData = params.get('data'); // URL 쿼리 파라미터 읽기
+  const params = new URLSearchParams(window.location.search);
+  const encodedData = params.get('data'); // URL 쿼리 파라미터 읽기
 
-        if (encodedData) {
-          const decodedData = fromBase64(encodedData);
-          scheduleContainer.innerHTML = decodedData;
-        } else {
-          const savedData = localStorage.getItem('scheduleData');
-          if (savedData) {
-            const decodedData = fromBase64(decodedData);
-            scheduleContainer.innerHTML = decodedData;
-          }
-        }
+  if (encodedData) {
+    const decodedData = fromBase64(encodedData);
+    scheduleContainer.innerHTML = decodedData;
+  } else {
+    const savedData = localStorage.getItem('scheduleData');
+    if (savedData) {
+      const decodedData = fromBase64(savedData);
+      scheduleContainer.innerHTML = decodedData;
+    } else {
+      console.log("No schedule data found.");
+    }
+  }
 
-        restoreFormValues(); // 로컬 스토리지에서 값 불러와 복원
-      }
+  restoreFormValues(); // 로컬 스토리지에서 값 불러와 복원
+}
 
       // 주 생성
       addWeekButton.addEventListener('click', function() {
