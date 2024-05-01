@@ -143,25 +143,19 @@
             }
 
             function restoreFormValues() {
-                const savedFormValues = localStorage.getItem('formValues');
-                if (savedFormValues) {
-                    const formValues = JSON.parse(savedFormValues);
+  const formValues = localStorage.getItem('formValues');
+  if (formValues && Array.isArray(formValues)) {
+    // JSON 문자열을 구문 분석하고 formValues 배열을 반복합니다.
+    const parsedFormValues = JSON.parse(formValues);
+    parsedFormValues.forEach((rowValues, rowIndex) => {
+      // 각 행의 폼 값 복원
+    });
+  } else {
+    // formValues가 유효한 배열이 아닌 경우 처리 (선택 사항)
+    console.log("로컬 스토리지에서 폼 값을 찾을 수 없습니다.");
+  }
+}
 
-                    formValues.forEach((rowValues, rowIndex) => {
-                        const row = document.querySelectorAll('#schedule-container tr')[rowIndex];
-                        if (row) {
-                            const inputs = row.querySelectorAll('input, select');
-
-                            inputs.forEach(input => {
-                                const key = input.id || `${input.type}_${input.name}_${rowIndex}`;
-                                if (rowValues[key] !== undefined) {
-                                    input.value = rowValues[key]; // 입력 값 복원
-                                }
-                            });
-                        }
-                    });
-                }
-            }
 
 
 
