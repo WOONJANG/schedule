@@ -99,7 +99,7 @@
         alert('저장되었습니다.');
       });
 
-      // 로컬 스토리지에 모든 입력 값 저장
+          // 로컬 스토리지에 모든 입력 값 저장
       function saveFormValues() {
         const rows = document.querySelectorAll('#schedule-container tr'); // 모든 행
         const formValues = {};
@@ -109,8 +109,13 @@
           formValues[rowIndex] = {}; // 각 행을 인덱스별로 저장
 
           inputs.forEach(input => {
-            const key = input.id || `<span class="math-inline">\{input\.type\}\_</span>{input.name}_${rowIndex}`; // 고유한 키 생성
-            formValues[rowIndex][key] = input.value; //
+            const key = input.id || `${input.type}_${input.name}_${rowIndex}`; // 고유한 키 생성
+            formValues[rowIndex][key] = input.value; // 입력 값 저장
+          });
+        });
+
+        localStorage.setItem('formValues', JSON.stringify(formValues)); // 로컬 스토리지에 저장
+      }
 
 
 
