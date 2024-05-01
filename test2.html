@@ -74,12 +74,14 @@
       const decodedData = fromBase64(savedData);
       scheduleContainer.innerHTML = decodedData;
     } else {
-      console.log("No schedule data found.");
+      // URL 또는 로컬 스토리지에서 데이터를 찾을 수 없는 경우 처리 (선택 사항)
+      console.log("일정 데이터를 찾을 수 없습니다.");
     }
   }
 
   restoreFormValues(); // 로컬 스토리지에서 값 불러와 복원
 }
+
 
       // 주 생성
       addWeekButton.addEventListener('click', function() {
